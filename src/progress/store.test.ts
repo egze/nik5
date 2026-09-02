@@ -44,6 +44,18 @@ const savedSession: SavedSession = {
   updatedAt: '2026-09-02T08:00:00.000Z',
 };
 
+const expectMalformedDocumentReset = (document: unknown) => {
+  const storage = new MemoryStorage();
+  const persisted = JSON.stringify(document);
+  storage.setItem(PROGRESS_KEY, persisted);
+
+  expect(createProgressStore(storage).snapshot()).toEqual({ version: 1, entries: {}, sessions: {}, exams: {} });
+  const backupKey = Array.from({ length: storage.length }, (_, index) => storage.key(index))
+    .find((key) => key?.startsWith('lernraum.progress.corrupt.'));
+  expect(backupKey).toMatch(/^lernraum\.progress\.corrupt\.\d+$/);
+  expect(storage.getItem(backupKey!)).toBe(persisted);
+};
+
 describe('progress store', () => {
   it('starts with an empty version-one document', () => {
     const store = createProgressStore(new MemoryStorage());
@@ -127,6 +139,43 @@ describe('progress store', () => {
     expect(backupKey).toMatch(/^lernraum\.progress\.corrupt\.\d+$/);
     expect(storage.getItem(backupKey!)).toBe('{not valid json');
     expect(storage.getItem(PROGRESS_KEY)).toBe(JSON.stringify(store.snapshot()));
+  });
+
+  it('backs up and resets a version-one document with malformed entry progress', () => {
+    expectMalformedDocumentReset({
+      version: 1,
+      entries: { hola: { attempts: 'one', correct: 0, status: 'new' } },
+      sessions: {},
+      exams: {},
+    });
+  });
+
+  it('backs up and resets a version-one document with a malformed saved session', () => {
+    expectMalformedDocumentReset({
+      version: 1,
+      entries: {},
+      sessions: {
+        'spanish-01:writing': {
+          lessonId: 'spanish-01',
+          mode: 'writing',
+          entryIds: ['hola'],
+          index: 'first',
+          direction: 'mixed',
+          answers: [],
+          updatedAt: '2026-09-02T08:00:00.000Z',
+        },
+      },
+      exams: {},
+    });
+  });
+
+  it('backs up and resets a version-one document with malformed exam history', () => {
+    expectMalformedDocumentReset({
+      version: 1,
+      entries: {},
+      sessions: {},
+      exams: { 'spanish-01': {} },
+    });
   });
 
   it('notifies a subscriber once for each mutation and stops after unsubscribe', () => {

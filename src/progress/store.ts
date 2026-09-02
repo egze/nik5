@@ -25,12 +25,84 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null && !Array.isArray(value)
 );
 
+const hasOnlyKeys = (value: Record<string, unknown>, keys: string[]) => (
+  Object.keys(value).every((key) => keys.includes(key))
+);
+
+const isFiniteNumber = (value: unknown): value is number => (
+  typeof value === 'number' && Number.isFinite(value)
+);
+
+const isStringArray = (value: unknown): value is string[] => (
+  Array.isArray(value) && value.every((item) => typeof item === 'string')
+);
+
+const isStudyStatus = (value: unknown): value is StudyStatus => (
+  value === 'new' || value === 'known' || value === 'practice'
+);
+
+const isExerciseMode = (value: unknown): value is ExerciseMode => (
+  value === 'learn' || value === 'multiple-choice' || value === 'writing' || value === 'exam'
+);
+
+const isDirection = (value: unknown): value is SavedSession['direction'] => (
+  value === 'es-de' || value === 'de-es' || value === 'mixed'
+);
+
+const isAnswerDirection = (value: unknown): value is NonNullable<SavedSession['answers'][number]['direction']> => (
+  value === 'es-de' || value === 'de-es'
+);
+
+const isEntryProgress = (value: unknown): value is EntryProgress => (
+  isRecord(value)
+  && hasOnlyKeys(value, ['attempts', 'correct', 'status'])
+  && isFiniteNumber(value.attempts)
+  && isFiniteNumber(value.correct)
+  && isStudyStatus(value.status)
+);
+
+const isSessionAnswer = (value: unknown): value is SavedSession['answers'][number] => (
+  isRecord(value)
+  && hasOnlyKeys(value, ['entryId', 'value', 'direction', 'correct'])
+  && typeof value.entryId === 'string'
+  && typeof value.value === 'string'
+  && (value.direction === undefined || isAnswerDirection(value.direction))
+  && (value.correct === undefined || typeof value.correct === 'boolean')
+);
+
+const isSavedSession = (value: unknown): value is SavedSession => (
+  isRecord(value)
+  && hasOnlyKeys(value, ['lessonId', 'mode', 'entryIds', 'index', 'direction', 'answers', 'updatedAt'])
+  && typeof value.lessonId === 'string'
+  && isExerciseMode(value.mode)
+  && isStringArray(value.entryIds)
+  && isFiniteNumber(value.index)
+  && isDirection(value.direction)
+  && Array.isArray(value.answers) && value.answers.every(isSessionAnswer)
+  && typeof value.updatedAt === 'string'
+);
+
+const isExamAttempt = (value: unknown): value is ExamAttempt => (
+  isRecord(value)
+  && hasOnlyKeys(value, ['lessonId', 'completedAt', 'percentage', 'missedEntryIds'])
+  && typeof value.lessonId === 'string'
+  && typeof value.completedAt === 'string'
+  && isFiniteNumber(value.percentage)
+  && isStringArray(value.missedEntryIds)
+);
+
 const isProgress = (value: unknown): value is AppProgress => (
   isRecord(value)
+  && hasOnlyKeys(value, ['version', 'entries', 'sessions', 'exams'])
   && value.version === 1
   && isRecord(value.entries)
   && isRecord(value.sessions)
   && isRecord(value.exams)
+  && Object.values(value.entries).every(isEntryProgress)
+  && Object.values(value.sessions).every(isSavedSession)
+  && Object.values(value.exams).every((attempts) => (
+    Array.isArray(attempts) && attempts.every(isExamAttempt)
+  ))
 );
 
 const migrate = (value: unknown): AppProgress | undefined => {
