@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { App, AppRoutes } from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProgressProvider } from './progress/ProgressProvider';
-import { createProgressStore, PROGRESS_KEY } from './progress/store';
+import { createProgressStore } from './progress/store';
 import { verifyPin } from './auth/pin';
 
 vi.mock('./auth/pin', async () => {
@@ -55,7 +55,7 @@ describe('App', () => {
     expect(document.querySelector('header')?.nextElementSibling).toBe(notice);
   });
 
-  it('keeps a multiple-choice attempt when returning home after unlocking and navigating the catalog', async () => {
+  it('shows a multiple-choice attempt on the catalog after unlocking and navigating the catalog', async () => {
     vi.mocked(verifyPin).mockResolvedValue(true);
     const user = userEvent.setup();
     render(<App />);
@@ -75,8 +75,7 @@ describe('App', () => {
     await user.click(screen.getByRole('link', { name: 'Fächer' }));
 
     expect(await screen.findByRole('heading', { name: 'Was möchtest du heute üben?' })).toBeInTheDocument();
-    const persisted = JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? '{}') as { entries?: Record<string, { attempts: number }> };
-    expect(Object.values(persisted.entries ?? {}).some((entry) => entry.attempts === 1)).toBe(true);
+    expect(screen.getByText(/1 Übungsversuch/)).toBeInTheDocument();
   });
 
   it.each([

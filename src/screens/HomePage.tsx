@@ -9,6 +9,14 @@ function learnedCount(entryIds: string[], entries: ReturnType<typeof useProgress
   return entryIds.filter((entryId) => entries[entryId]?.status === 'known').length;
 }
 
+function attemptCount(entryIds: string[], entries: ReturnType<typeof useProgress>['progress']['entries']) {
+  return entryIds.reduce((total, entryId) => total + (entries[entryId]?.attempts ?? 0), 0);
+}
+
+function attemptLabel(attempts: number) {
+  return `${attempts} ${attempts === 1 ? 'Übungsversuch' : 'Übungsversuche'}`;
+}
+
 export function HomePage() {
   const { progress } = useProgress();
 
@@ -23,6 +31,7 @@ export function HomePage() {
               .filter((lesson) => lesson.subjectId === subject.id)
               .flatMap((lesson) => lesson.entries.map((entry) => entry.id));
             const learned = learnedCount(entryIds, progress.entries);
+            const attempts = attemptCount(entryIds, progress.entries);
 
             return (
               <Link
@@ -36,6 +45,7 @@ export function HomePage() {
                   <strong>{subject.name}</strong>
                   <span>{subject.description}</span>
                   <ProgressBar label={`${learned} von ${entryIds.length} gelernt`} value={learned} total={entryIds.length} />
+                  {attempts > 0 && <span className="practice-summary">{attemptLabel(attempts)}</span>}
                 </div>
               </Link>
             );
