@@ -29,6 +29,24 @@ describe('exercise engine', () => {
     expect(question.options).toHaveLength(2);
   });
 
+  it('excludes all equivalent answers for the current entry from distractors', () => {
+    const current: VocabularyEntry = {
+      ...entries[0], german: ['Eins', 'Ein'], acceptedGerman: ['Eine'],
+    };
+    const question = createMultipleChoice([current, ...entries.slice(1)], 'one', 'es-de', () => 0);
+    expect(question.options).toContain('Eins');
+    expect(question.options).not.toContain('Ein');
+    expect(question.options).not.toContain('Eine');
+  });
+
+  it('caps multiple-choice options at four when enough distractors exist', () => {
+    const expanded = [...entries, ...Array.from({ length: 4 }, (_, index) => ({
+      id: `extra-${index}`, groupId: 'g', spanish: `Extra ${index}`,
+      german: [`Extra DE ${index}`], kind: 'word' as const,
+    }))];
+    expect(createMultipleChoice(expanded, 'one', 'es-de', () => 0).options).toHaveLength(4);
+  });
+
   it('creates a stable question with a zero-valued random source', () => {
     expect(createMultipleChoice(entries, 'one', 'de-es', () => 0)).toEqual({
       entryId: 'one', direction: 'de-es', prompt: 'Eins', answers: ['Uno'],

@@ -57,10 +57,13 @@ export function createMultipleChoice(
   const entry = entries.find((candidate) => candidate.id === entryId);
   if (!entry) throw new Error(`Unknown vocabulary entry: ${entryId}`);
 
-  const correct = acceptedAnswers(entry, direction)[0];
+  const currentAnswers = acceptedAnswers(entry, direction);
+  const correct = currentAnswers[0];
   if (correct === undefined) throw new Error(`Entry has no answer: ${entryId}`);
   const allAnswers = entries.flatMap((candidate) => acceptedAnswers(candidate, direction));
-  const options = distinctAnswers(allAnswers.filter((answer) => normalizeAnswer(answer) !== normalizeAnswer(correct)));
+  const currentAnswerKeys = new Set(currentAnswers.map(normalizeAnswer));
+  const distractors = distinctAnswers(allAnswers.filter((answer) => !currentAnswerKeys.has(normalizeAnswer(answer))));
+  const options = distractors.slice(0, 3);
   options.unshift(correct);
   return { ...createPrompt(entry, direction), options: shuffle(options, random) };
 }
