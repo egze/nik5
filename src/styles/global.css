@@ -17,6 +17,17 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
 :focus-visible { outline: 3px solid #ef9f32; outline-offset: 3px; }
+.pin-gate, .app-shell { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }
+.pin-card { width: min(100%, 28rem); padding: 2.5rem; border: 1px solid var(--line); border-radius: 1.25rem; background: var(--paper); box-shadow: var(--shadow); }
+.pin-card h1 { margin: 0.25rem 0 1rem; font-size: clamp(2rem, 8vw, 3rem); }
+.eyebrow { margin: 0; color: var(--teal-dark); font-weight: 700; }
+.pin-copy { color: var(--muted); line-height: 1.5; }
+.pin-card form { display: grid; gap: 0.65rem; margin-top: 1.75rem; }
+.pin-card input { width: 100%; padding: 0.8rem 0.9rem; border: 1px solid var(--line); border-radius: 0.65rem; letter-spacing: 0.2em; }
+.pin-card button, .logout-button { border: 0; border-radius: 0.65rem; padding: 0.8rem 1rem; color: white; background: var(--teal); font-weight: 700; cursor: pointer; }
+.pin-card button:disabled { cursor: wait; opacity: 0.65; }
+.pin-card [role="status"] { min-height: 1.5rem; color: #9a3021; }
+.auth-actions { display: flex; justify-content: flex-end; padding: 1rem; background: var(--paper); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
