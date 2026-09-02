@@ -99,7 +99,7 @@ a { color: inherit; }
 .writing-feedback--wrong > span { background: #f8ddd8; color: var(--error); }
 .exam-navigation { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
 .exam-navigation button:disabled { cursor: default; opacity: 0.5; }
-.exam-navigation__submit { margin-left: auto; background: var(--coral) !important; border-color: var(--coral) !important; }
+.exam-navigation__submit { margin-left: auto; border-color: var(--coral) !important; background: var(--coral) !important; color: var(--ink) !important; }
 .result-panel { max-width: 48rem; }
 .result-panel__score { color: var(--ink) !important; font-size: clamp(1.35rem, 4vw, 2rem) !important; font-weight: 800; }
 .result-review { margin-top: 2.5rem; }

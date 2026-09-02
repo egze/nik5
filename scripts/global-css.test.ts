@@ -29,3 +29,15 @@ describe('global focus treatment', () => {
     });
   });
 });
+
+describe('coral exam submission treatment', () => {
+  it('uses readable ink text on the coral submit action', () => {
+    const ink = css.match(/--ink:\s*(#[\da-f]{6});/i)?.[1];
+    const coral = css.match(/--coral:\s*(#[\da-f]{6});/i)?.[1];
+
+    expect(ink).toBeDefined();
+    expect(coral).toBeDefined();
+    expect(contrast(ink!, coral!)).toBeGreaterThanOrEqual(4.5);
+    expect(css).toMatch(/\.exam-navigation__submit\s*\{[^}]*color:\s*var\(--ink\)\s*!important;/);
+  });
+});
