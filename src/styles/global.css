@@ -76,9 +76,11 @@ a { color: inherit; }
 .choice-options button { width: 100%; background: var(--paper); color: var(--ink); text-align: left; }
 .choice-options button:disabled { cursor: default; opacity: 0.72; }
 .choice-feedback { margin-top: 1.25rem; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--paper); }
+.choice-feedback__icon { display: inline-grid; width: 2rem; height: 2rem; margin-bottom: 0.5rem; place-items: center; border-radius: 50%; background: #dff1e9; color: var(--success); font-size: 1.2rem; font-weight: 900; }
 .choice-feedback p { margin: 0 0 0.75rem; line-height: 1.5; }
 .choice-feedback--correct { border-color: #b1dacd; }
 .choice-feedback--wrong { border-color: #e5b6ad; }
+.choice-feedback--wrong .choice-feedback__icon { background: #f8ddd8; color: var(--error); }
 .exercise-summary p { color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
 .button-link--secondary { margin-top: 0; }
 .feedback-card { display: flex; max-width: 42rem; gap: 1rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: var(--shadow); }

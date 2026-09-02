@@ -150,6 +150,7 @@ export function MultipleChoiceMode() {
         </div>
         {selectedValue !== null && (
           <div className={`choice-feedback ${isCorrect ? 'choice-feedback--correct' : 'choice-feedback--wrong'}`} aria-live="polite">
+            <span className="choice-feedback__icon" aria-hidden="true">{isCorrect ? '✓' : '✕'}</span>
             <p role="status">{isCorrect ? 'Richtig!' : 'Nicht ganz.'}</p>
             <p>Die richtige Übersetzung ist: {question.answers[0]}</p>
             <button type="button" onClick={advance}>Weiter</button>

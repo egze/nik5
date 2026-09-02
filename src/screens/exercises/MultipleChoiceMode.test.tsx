@@ -46,8 +46,9 @@ describe('MultipleChoiceMode', () => {
     await user.click(screen.getByRole('button', { name: 'der Tag' }));
 
     expect(screen.getByRole('status')).toHaveTextContent('Richtig!');
+    expect(screen.getByText('✓')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByText(/Die richtige Übersetzung ist: der Tag/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'der Tag' })).toBeDisabled();
+    options.forEach((option) => expect(option).toBeDisabled());
     expect(store.snapshot().entries['el-dia']).toMatchObject({ attempts: 1, correct: 1 });
     expect(store.snapshot().sessions['spanish-01:multiple-choice']?.index).toBe(0);
     expect(screen.getByRole('button', { name: 'Weiter' })).toBeInTheDocument();
@@ -83,5 +84,44 @@ describe('MultipleChoiceMode', () => {
     expect(store.snapshot().sessions['spanish-01:multiple-choice']).toMatchObject({
       entryIds: ['el-dia', 'hola'], index: 1,
     });
+  });
+
+  it('shows incorrect textual feedback with a visible cross and locks every option', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'multiple-choice', entryIds: ['el-dia'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderMultipleChoiceMode(store);
+
+    const options = screen.getAllByRole('button').filter((button) => button.getAttribute('data-choice') === 'true');
+    const wrongOption = options.find((option) => option.textContent !== 'der Tag');
+    if (!wrongOption) throw new Error('Expected a distractor option');
+    await user.click(wrongOption);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Nicht ganz.');
+    expect(screen.getByText('✕')).toHaveAttribute('aria-hidden', 'true');
+    options.forEach((option) => expect(option).toBeDisabled());
+    expect(store.snapshot().entries['el-dia']).toMatchObject({ attempts: 1, correct: 0 });
+  });
+
+  it('does not record another attempt when remounting an answered saved question', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'multiple-choice', entryIds: ['el-dia'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    const firstView = renderMultipleChoiceMode(store);
+
+    await user.click(screen.getByRole('button', { name: 'der Tag' }));
+    expect(store.snapshot().entries['el-dia']?.attempts).toBe(1);
+    firstView.unmount();
+    renderMultipleChoiceMode(store);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Richtig!');
+    expect(screen.getByRole('button', { name: 'der Tag' })).toBeDisabled();
+    expect(store.snapshot().entries['el-dia']?.attempts).toBe(1);
   });
 });

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { LearnMode } from './LearnMode';
+import { spanish01 } from '../../content/lessons/spanish-01';
 import { ProgressProvider } from '../../progress/ProgressProvider';
 import { createProgressStore } from '../../progress/store';
 
@@ -36,7 +37,7 @@ describe('LearnMode', () => {
 
     await user.click(screen.getByRole('button', { name: 'Spanisch → Deutsch' }));
 
-    expect(screen.getByRole('button', { name: 'Antwort zeigen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Antwort zeigen/ })).toBeInTheDocument();
     expect(screen.getByText('Karte 1 von 38')).toBeInTheDocument();
   });
 
@@ -50,7 +51,7 @@ describe('LearnMode', () => {
     renderLearnMode(store);
 
     expect(screen.queryByRole('button', { name: 'Kann ich' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Antwort zeigen' }));
+    await user.click(screen.getByRole('button', { name: /Antwort zeigen/ }));
     expect(screen.getByText('Hallo!')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Kann ich' }));
 
@@ -68,10 +69,76 @@ describe('LearnMode', () => {
     renderLearnMode(store);
 
     expect(screen.getByText('Karte 2 von 2')).toBeInTheDocument();
-    screen.getByRole('button', { name: 'Antwort zeigen' }).focus();
+    screen.getByRole('button', { name: /Antwort zeigen/ }).focus();
     await user.keyboard('{Enter}');
 
     expect(screen.getByText('Danke.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Noch üben' })).toBeInTheDocument();
+  });
+
+  it('keeps the prompt, revealed answer, example, and action in the flashcard name', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['se-dice'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderLearnMode(store);
+
+    const card = screen.getByRole('button', { name: /Antwort zeigen/ });
+    expect(card).toHaveAccessibleName(/se dice.*Antwort zeigen/i);
+    await user.click(card);
+
+    expect(card).toHaveAccessibleName(/se dice.*man sagt.*En alemán.*Buenos días.*Guten Tag.*Antwort verbergen/is);
+    expect(screen.getByText(/En alemán “buenos días” se dice “Guten Tag”\./)).toBeInTheDocument();
+    expect(screen.getByText(/„Buenos días“ heißt „Guten Tag“ auf Deutsch\./)).toBeInTheDocument();
+  });
+
+  it('rates cards for practice, clears a completed session, and reports both totals', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['hola', 'gracias'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderLearnMode(store);
+
+    await user.click(screen.getByRole('button', { name: /Antwort zeigen/ }));
+    await user.click(screen.getByRole('button', { name: 'Kann ich' }));
+    await user.click(screen.getByRole('button', { name: /Antwort zeigen/ }));
+    await user.click(screen.getByRole('button', { name: 'Noch üben' }));
+
+    expect(store.snapshot().entries.gracias?.status).toBe('practice');
+    expect(store.snapshot().sessions['spanish-01:learn']).toBeUndefined();
+    expect(screen.getByText('1 kannst du, 1 übst du weiter.')).toBeInTheDocument();
+  });
+
+  it('puts practice entries first without omitting any entries on a new run', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.setStudyStatus('hola', 'practice');
+    renderLearnMode(store);
+
+    await user.click(screen.getByRole('button', { name: 'Spanisch → Deutsch' }));
+
+    const queue = store.snapshot().sessions['spanish-01:learn']?.entryIds ?? [];
+    expect(queue[0]).toBe('hola');
+    expect(new Set(queue)).toEqual(new Set(spanish01.entries.map((entry) => entry.id)));
+    expect(queue).toHaveLength(spanish01.entries.length);
+  });
+
+  it('shows a German prompt and Spanish answer for the reverse direction', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['hola'], index: 0,
+      direction: 'de-es', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderLearnMode(store);
+
+    expect(screen.getByText('Hallo!')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Antwort zeigen/ }));
+
+    expect(screen.getByText('¡Hola!')).toBeInTheDocument();
   });
 });

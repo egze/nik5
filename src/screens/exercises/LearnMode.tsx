@@ -124,7 +124,6 @@ export function LearnMode() {
         <button
           className="flashcard"
           type="button"
-          aria-label={revealed ? 'Antwort verbergen' : 'Antwort zeigen'}
           onClick={() => setRevealed((value) => !value)}
         >
           <span className="flashcard__prompt">{promptFor(currentEntry, direction)}</span>
@@ -133,7 +132,8 @@ export function LearnMode() {
               {answerFor(currentEntry, direction)}
               {currentEntry.example && <small>{currentEntry.example.spanish}\n{currentEntry.example.german}</small>}
             </span>
-          ) : <span className="flashcard__hint">Antwort zeigen</span>}
+          ) : null}
+          <span className="flashcard__hint">{revealed ? 'Antwort verbergen' : 'Antwort zeigen'}</span>
         </button>
         {revealed && (
           <div className="rating-actions" aria-label="Karte bewerten">
