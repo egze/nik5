@@ -46,15 +46,27 @@ export async function verifyPin(pin: string, config: PinConfig): Promise<boolean
 }
 
 export function isUnlocked(config: PinConfig, storage: Storage | undefined = defaultStorage()): boolean {
-  return storage?.getItem(AUTH_KEY) === config.credentialVersion;
+  try {
+    return storage?.getItem(AUTH_KEY) === config.credentialVersion;
+  } catch {
+    return false;
+  }
 }
 
 export function rememberUnlock(config: PinConfig, storage: Storage | undefined = defaultStorage()): void {
-  storage?.setItem(AUTH_KEY, config.credentialVersion);
+  try {
+    storage?.setItem(AUTH_KEY, config.credentialVersion);
+  } catch {
+    // A verified session remains available even when browser storage is unavailable.
+  }
 }
 
 export function logout(storage: Storage | undefined = defaultStorage()): void {
-  storage?.removeItem(AUTH_KEY);
+  try {
+    storage?.removeItem(AUTH_KEY);
+  } catch {
+    // The caller can still reset its current-session state.
+  }
 }
 
 function defaultStorage(): Storage | undefined {

@@ -55,6 +55,23 @@ describe('remembered unlock', () => {
 
     expect(storage.getItem('lernraum.auth')).toBeNull();
   });
+
+  it('treats a storage read failure as locked', () => {
+    const storage = new ThrowingStorage('get');
+
+    expect(isUnlocked(config, storage)).toBe(false);
+    expect(storage.getCalls).toBe(1);
+  });
+
+  it('tolerates storage write and removal failures', () => {
+    const writeFailure = new ThrowingStorage('set');
+    const removalFailure = new ThrowingStorage('remove');
+
+    expect(() => rememberUnlock(config, writeFailure)).not.toThrow();
+    expect(() => logout(removalFailure)).not.toThrow();
+    expect(writeFailure.setCalls).toBe(1);
+    expect(removalFailure.removeCalls).toBe(1);
+  });
 });
 
 class MapStorage implements Storage {
@@ -86,5 +103,33 @@ class MapStorage implements Storage {
 
   values() {
     return [...this.entries.entries()];
+  }
+}
+
+class ThrowingStorage extends MapStorage {
+  getCalls = 0;
+  setCalls = 0;
+  removeCalls = 0;
+
+  constructor(private readonly operation: 'get' | 'set' | 'remove') {
+    super();
+  }
+
+  override getItem(key: string) {
+    this.getCalls += 1;
+    if (this.operation === 'get') throw new DOMException('blocked');
+    return super.getItem(key);
+  }
+
+  override setItem(key: string, value: string) {
+    this.setCalls += 1;
+    if (this.operation === 'set') throw new DOMException('blocked');
+    super.setItem(key, value);
+  }
+
+  override removeItem(key: string) {
+    this.removeCalls += 1;
+    if (this.operation === 'remove') throw new DOMException('blocked');
+    super.removeItem(key);
   }
 }

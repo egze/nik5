@@ -100,7 +100,7 @@ export function PinGate({ children }: { children: ReactNode }) {
             autoComplete="one-time-code"
             maxLength={6}
             pattern="[0-9]*"
-            type="text"
+            type="password"
           />
           <button type="submit" disabled={checking || locked} aria-busy={checking}>Öffnen</button>
         </form>

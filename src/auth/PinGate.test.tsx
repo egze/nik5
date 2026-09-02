@@ -21,6 +21,22 @@ class MemoryStorage implements Storage {
   setItem(key: string, value: string) { this.values.set(key, value); }
 }
 
+class ThrowingStorage extends MemoryStorage {
+  constructor(private readonly operation: 'set' | 'remove') {
+    super();
+  }
+
+  override setItem(key: string, value: string) {
+    if (this.operation === 'set') throw new DOMException('blocked');
+    super.setItem(key, value);
+  }
+
+  override removeItem(key: string) {
+    if (this.operation === 'remove') throw new DOMException('blocked');
+    super.removeItem(key);
+  }
+}
+
 describe('PinGate', () => {
   const storage = new MemoryStorage();
 
@@ -48,6 +64,7 @@ describe('PinGate', () => {
     expect(screen.getByRole('button', { name: 'Öffnen' })).toBeInTheDocument();
     expect(input).toHaveAttribute('inputmode', 'numeric');
     expect(input).toHaveAttribute('maxlength', '6');
+    expect(input).toHaveAttribute('type', 'password');
     expect(input).toHaveValue('123456');
   });
 
@@ -64,6 +81,18 @@ describe('PinGate', () => {
     expect(screen.getByRole('button', { name: 'Abmelden' })).toBeInTheDocument();
   });
 
+  it('unlocks for the current session when remembering the verified PIN fails', async () => {
+    vi.stubGlobal('localStorage', new ThrowingStorage('set'));
+    vi.mocked(verifyPin).mockResolvedValue(true);
+    const user = userEvent.setup();
+    render(<PinGate><h1>Fächer</h1></PinGate>);
+
+    await user.type(screen.getByLabelText('Familien-PIN'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Öffnen' }));
+
+    expect(await screen.findByRole('heading', { name: 'Fächer' })).toBeInTheDocument();
+  });
+
   it('returns to the lock screen and removes the remembered unlock on logout', async () => {
     vi.mocked(verifyPin).mockResolvedValue(true);
     const user = userEvent.setup();
@@ -75,6 +104,19 @@ describe('PinGate', () => {
 
     expect(screen.getByLabelText('Familien-PIN')).toBeInTheDocument();
     expect(isUnlocked(pinConfig)).toBe(false);
+  });
+
+  it('returns to the lock screen when storage removal fails during logout', async () => {
+    vi.stubGlobal('localStorage', new ThrowingStorage('remove'));
+    vi.mocked(verifyPin).mockResolvedValue(true);
+    const user = userEvent.setup();
+    render(<PinGate><h1>Fächer</h1></PinGate>);
+
+    await user.type(screen.getByLabelText('Familien-PIN'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Öffnen' }));
+    await user.click(await screen.findByRole('button', { name: 'Abmelden' }));
+
+    expect(screen.getByLabelText('Familien-PIN')).toBeInTheDocument();
   });
 
   it('announces the generic German error for a rejected PIN', async () => {
