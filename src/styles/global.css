@@ -1,0 +1,22 @@
+:root {
+  font-family: Inter, ui-rounded, "Avenir Next", system-ui, sans-serif;
+  color: #20322f;
+  background: #f6f3ea;
+  font-synthesis: none;
+  --ink: #20322f;
+  --muted: #677572;
+  --paper: #fffdf7;
+  --teal: #177c73;
+  --teal-dark: #0e5c55;
+  --coral: #ed785f;
+  --line: #d9ded8;
+  --shadow: 0 18px 50px rgb(40 58 53 / 10%);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid #ef9f32; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
