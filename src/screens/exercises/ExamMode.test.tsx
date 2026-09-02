@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { spanish01 } from '../../content/lessons/spanish-01';
 import { acceptedAnswers } from '../../exercises/answers';
@@ -37,15 +37,15 @@ function renderExamMode(
   store = createProgressStore(new MemoryStorage()),
   path = '/subjects/spanish/lessons/spanish-01/pruefung',
 ) {
+  const router = createMemoryRouter([
+    { path: '/subjects/:subjectId/lessons/:lessonId/pruefung', element: <ExamMode /> },
+  ], { initialEntries: [path] });
   return {
     store,
+    router,
     ...render(
       <ProgressProvider store={store}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/subjects/:subjectId/lessons/:lessonId/pruefung" element={<ExamMode />} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </ProgressProvider>,
     ),
   };
@@ -67,6 +67,52 @@ describe('ExamMode', () => {
 
     expect(screen.getByRole('heading', { name: 'Diesen Lerninhalt gibt es nicht.' })).toBeInTheDocument();
     expect(store.snapshot()).toEqual(before);
+  });
+
+  it('mounts the saved session when an in-place route change becomes valid', async () => {
+    const store = createProgressStore(new MemoryStorage());
+    const saved = fullExamSession();
+    saved.answers[0]!.value = 'gespeichert';
+    store.saveSession(saved);
+    const before = store.snapshot();
+    const { router } = renderExamMode(
+      store,
+      '/subjects/not-spanish/lessons/spanish-01/pruefung',
+    );
+
+    await act(async () => {
+      await router.navigate('/subjects/spanish/lessons/spanish-01/pruefung');
+    });
+
+    expect(screen.getByRole('heading', { name: 'Teste die ganze Lektion' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Deine Übersetzung')).toHaveValue('gespeichert');
+    expect(store.snapshot()).toEqual(before);
+  });
+
+  it('reloads current progress after an in-place valid-invalid-valid route change', async () => {
+    const store = createProgressStore(new MemoryStorage());
+    const saved = fullExamSession();
+    saved.answers = [...saved.answers].reverse();
+    store.saveSession(saved);
+    const { router } = renderExamMode(store);
+    await waitFor(() => expect(store.snapshot().sessions['spanish-01:exam']?.answers[0]?.entryId).toBe('el-dia'));
+
+    await act(async () => {
+      await router.navigate('/subjects/not-spanish/lessons/spanish-01/pruefung');
+    });
+    const current = structuredClone(store.snapshot().sessions['spanish-01:exam']!);
+    current.index = 1;
+    current.answers[1]!.value = 'aktuell';
+    current.updatedAt = '2026-09-02T10:00:00.000Z';
+    act(() => store.saveSession(current));
+
+    await act(async () => {
+      await router.navigate('/subjects/spanish/lessons/spanish-01/pruefung');
+    });
+
+    expect(screen.getByText('Aufgabe 2 von 38')).toBeInTheDocument();
+    expect(screen.getByLabelText('Deine Übersetzung')).toHaveValue('aktuell');
+    expect(store.snapshot().sessions['spanish-01:exam']).toEqual(current);
   });
 
   it('creates and persists every entry exactly once with its generated direction', async () => {

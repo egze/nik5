@@ -234,3 +234,83 @@ vite: 47 modules transformed; production bundle built successfully.
 ### Fix Round 1 concerns
 
 No new concerns. The original Node version caveat above remains applicable.
+
+## Fix Round 2 — key stateful sessions to route identity
+
+### Finding and root cause
+
+Fix Round 1 prevented persistence while ownership was invalid, but the route-aware ownership value and the stateful session initializer still lived in the same mounted component. React Router can reuse that component across same-pattern parameter changes. Because a lazy `useState` initializer runs only once while the save effect reran when ownership changed:
+
+- invalid→valid retained an undefined initial session and kept rendering missing content;
+- valid→invalid→valid retained stale local/initializer state and could replay the initial save over newer store progress;
+- an in-place Writing retry-query change retained the previous retry queue.
+
+### Fix Round 2 RED
+
+Both test harnesses now use a real imperative memory router so each regression changes route parameters/query on the same mounted route tree. The new cases cover invalid→valid and valid→invalid→valid for both modes; Writing also covers a valid retry-query identity change.
+
+```text
+npm test -- src/screens/exercises/WritingMode.test.tsx src/screens/exercises/ExamMode.test.tsx
+Test Files  2 failed (2)
+Tests       5 failed | 18 passed (23)
+
+WritingMode:
+- invalid→valid remained on missing content;
+- valid→invalid→valid displayed the stale empty value instead of `aktuell`;
+- entries=hola→entries=el-dia retained the hola queue.
+
+ExamMode:
+- invalid→valid remained on missing content;
+- valid→invalid→valid returned to Aufgabe 1 instead of current Aufgabe 2.
+```
+
+### Fix Round 2 GREEN implementation
+
+- `WritingMode` and `ExamMode` are now stateless route/ownership guards. Invalid ownership renders `MissingContent` without mounting any session logic.
+- Each valid route renders a dedicated stateful inner component keyed by the validated subject/lesson identity.
+- Writing’s key additionally includes a semantic retry identity: `default`, the unique validated retry IDs, or the full-lesson invalid-query fallback. Semantically equivalent duplicate/invalid query spellings do not force unnecessary remounts.
+- Leaving a valid route unmounts the inner session. Returning creates a fresh lifecycle that reads current progress, so stale local/initializer values cannot overwrite newer store state.
+- The initial save effect no longer depends on route ownership. It belongs to one keyed inner mount and only persists when that mount actually created or hydrated a session.
+
+```text
+npm test -- src/screens/exercises/WritingMode.test.tsx src/screens/exercises/ExamMode.test.tsx
+Test Files  2 passed (2)
+Tests       23 passed (23)
+```
+
+### Fix Round 2 verification
+
+```text
+npm test -- src/App.test.tsx
+Test Files  1 passed (1)
+Tests       3 passed (3)
+
+npm test
+Test Files  15 passed (15)
+Tests       91 passed (91)
+
+npm run build
+Inhalte geprüft: 1 Fach, 1 Lektion, 38 Einträge.
+TypeScript project build passed.
+vite: 47 modules transformed; production bundle built successfully.
+```
+
+### Fix Round 2 files
+
+- `src/screens/exercises/WritingMode.tsx`
+- `src/screens/exercises/WritingMode.test.tsx`
+- `src/screens/exercises/ExamMode.tsx`
+- `src/screens/exercises/ExamMode.test.tsx`
+- `.superpowers/sdd/2026-09-02-language-learning-site/task-8-report.md`
+
+### Fix Round 2 review
+
+- Ownership is validated before a stateful session component exists, so invalid routes cannot read, create, hydrate, persist, or retain lesson session state.
+- Valid route identity changes and writing retry identity changes explicitly remount the state owner. The new mount initializes from the latest immutable progress snapshot.
+- The initial save cannot replay on invalid/valid transitions because the component that owns that effect is unmounted while invalid.
+- In-place transition tests prove saved values, current exam index, updated external progress, and retry subsets all survive or change exactly as intended.
+- Existing German missing-content output, labelled controls, feedback, scoring, and accessibility behavior are unchanged.
+
+### Fix Round 2 concerns
+
+No new concerns. The original Node version caveat remains applicable.

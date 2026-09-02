@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { spanish01 } from '../../content/lessons/spanish-01';
 import { ProgressProvider } from '../../progress/ProgressProvider';
@@ -33,15 +33,15 @@ function renderWritingMode(
   store = createProgressStore(new MemoryStorage()),
   path = '/subjects/spanish/lessons/spanish-01/schreiben',
 ) {
+  const router = createMemoryRouter([
+    { path: '/subjects/:subjectId/lessons/:lessonId/schreiben', element: <WritingMode /> },
+  ], { initialEntries: [path] });
   return {
     store,
+    router,
     ...render(
       <ProgressProvider store={store}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/subjects/:subjectId/lessons/:lessonId/schreiben" element={<WritingMode />} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </ProgressProvider>,
     ),
   };
@@ -64,6 +64,63 @@ describe('WritingMode', () => {
 
     expect(screen.getByRole('heading', { name: 'Diesen Lerninhalt gibt es nicht.' })).toBeInTheDocument();
     expect(store.snapshot()).toEqual(before);
+  });
+
+  it('mounts the saved session when an in-place route change becomes valid', async () => {
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession(savedWritingSession({
+      answers: [{ entryId: 'hola', value: 'gespeichert', direction: 'es-de' }],
+    }));
+    const before = store.snapshot();
+    const { router } = renderWritingMode(
+      store,
+      '/subjects/not-spanish/lessons/spanish-01/schreiben',
+    );
+
+    await act(async () => {
+      await router.navigate('/subjects/spanish/lessons/spanish-01/schreiben');
+    });
+
+    expect(screen.getByRole('heading', { name: 'Übersetze den Ausdruck' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Deine Übersetzung')).toHaveValue('gespeichert');
+    expect(store.snapshot()).toEqual(before);
+  });
+
+  it('reloads current progress after an in-place valid-invalid-valid route change', async () => {
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession(savedWritingSession({ answers: [] }));
+    const { router } = renderWritingMode(store);
+    await waitFor(() => expect(store.snapshot().sessions['spanish-01:writing']?.answers).toHaveLength(1));
+
+    await act(async () => {
+      await router.navigate('/subjects/not-spanish/lessons/spanish-01/schreiben');
+    });
+    const current = structuredClone(store.snapshot().sessions['spanish-01:writing']!);
+    current.answers[0]!.value = 'aktuell';
+    current.updatedAt = '2026-09-02T10:00:00.000Z';
+    act(() => store.saveSession(current));
+
+    await act(async () => {
+      await router.navigate('/subjects/spanish/lessons/spanish-01/schreiben');
+    });
+
+    expect(screen.getByLabelText('Deine Übersetzung')).toHaveValue('aktuell');
+    expect(store.snapshot().sessions['spanish-01:writing']).toEqual(current);
+  });
+
+  it('starts the newly requested retry after an in-place query change', async () => {
+    const store = createProgressStore(new MemoryStorage());
+    const { router } = renderWritingMode(
+      store,
+      '/subjects/spanish/lessons/spanish-01/schreiben?entries=hola',
+    );
+    await waitFor(() => expect(store.snapshot().sessions['spanish-01:writing']?.entryIds).toEqual(['hola']));
+
+    await act(async () => {
+      await router.navigate('/subjects/spanish/lessons/spanish-01/schreiben?entries=el-dia');
+    });
+
+    await waitFor(() => expect(store.snapshot().sessions['spanish-01:writing']?.entryIds).toEqual(['el-dia']));
   });
 
   it('creates and persists one mixed-direction prompt for every lesson entry', async () => {

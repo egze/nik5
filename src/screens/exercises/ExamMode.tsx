@@ -81,14 +81,26 @@ interface ExamResult {
 
 export function ExamMode() {
   const { subjectId, lessonId } = useParams();
-  const { progress, updateEntry, saveSession, clearSession, recordExam } = useProgress();
   const subject = subjectId ? getSubject(subjectId) : undefined;
   const lesson = lessonId ? getLesson(lessonId) : undefined;
   const belongsToSubject = Boolean(subject && lesson
     && lesson.subjectId === subject.id
     && subject.lessonIds.includes(lesson.id));
+
+  if (!belongsToSubject || !subject || !lesson) return <MissingContent />;
+
+  const identity = `${subject.id}:${lesson.id}`;
+  return <ExamSession key={identity} lesson={lesson} subjectId={subject.id} />;
+}
+
+interface ExamSessionProps {
+  lesson: Lesson;
+  subjectId: string;
+}
+
+function ExamSession({ lesson, subjectId }: ExamSessionProps) {
+  const { progress, updateEntry, saveSession, clearSession, recordExam } = useProgress();
   const [initial] = useState<InitialExamState>(() => {
-    if (!belongsToSubject || !lesson) return { needsSave: false };
     const saved = progress.sessions[sessionKey(lesson.id, 'exam')];
     if (saved && isUsableSession(saved, lesson)) {
       const completed = completeAnswers(saved);
@@ -104,12 +116,12 @@ export function ExamMode() {
   const submitting = useRef(false);
 
   useEffect(() => {
-    if (belongsToSubject && initial.needsSave && initial.session) saveSession(initial.session);
-  }, [belongsToSubject, initial, saveSession]);
+    if (initial.needsSave && initial.session) saveSession(initial.session);
+  }, [initial, saveSession]);
 
-  if (!belongsToSubject || !subject || !lesson || !session) return <MissingContent />;
+  if (!session) return <MissingContent />;
 
-  const basePath = `/subjects/${subject.id}/lessons/${lesson.id}`;
+  const basePath = `/subjects/${subjectId}/lessons/${lesson.id}`;
   const entriesById = new Map(lesson.entries.map((entry) => [entry.id, entry]));
   const questions = session.entryIds.map((entryId) => {
     const entry = entriesById.get(entryId)!;

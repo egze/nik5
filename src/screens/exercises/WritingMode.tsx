@@ -13,23 +13,25 @@ import { ResultPanel } from './ResultPanel';
 
 interface EntrySelection {
   entries: VocabularyEntry[];
+  identity: string;
   requiredIds?: Set<string>;
 }
 
 function requestedEntries(lesson: Lesson, search: string): EntrySelection {
   const requested = new URLSearchParams(search).get('entries');
-  if (requested === null) return { entries: lesson.entries };
+  if (requested === null) return { entries: lesson.entries, identity: 'default' };
 
   const ids = requested.split(',');
   const lessonIds = new Set(lesson.entries.map((entry) => entry.id));
   if (ids.some((id) => id.length === 0 || !lessonIds.has(id))) {
-    return { entries: lesson.entries, requiredIds: lessonIds };
+    return { entries: lesson.entries, identity: 'retry:all', requiredIds: lessonIds };
   }
 
   const uniqueIds = [...new Set(ids)];
   const byId = new Map(lesson.entries.map((entry) => [entry.id, entry]));
   return {
     entries: uniqueIds.map((id) => byId.get(id)!),
+    identity: `retry:${uniqueIds.join(',')}`,
     requiredIds: new Set(uniqueIds),
   };
 }
@@ -96,16 +98,29 @@ interface InitialWritingState {
 export function WritingMode() {
   const { subjectId, lessonId } = useParams();
   const location = useLocation();
-  const { progress, updateEntry, saveSession, clearSession } = useProgress();
   const subject = subjectId ? getSubject(subjectId) : undefined;
   const lesson = lessonId ? getLesson(lessonId) : undefined;
   const belongsToSubject = Boolean(subject && lesson
     && lesson.subjectId === subject.id
     && subject.lessonIds.includes(lesson.id));
-  const selection = lesson ? requestedEntries(lesson, location.search) : { entries: [] };
-  const lessonIds = new Set(lesson?.entries.map((entry) => entry.id) ?? []);
+
+  if (!belongsToSubject || !subject || !lesson) return <MissingContent />;
+
+  const selection = requestedEntries(lesson, location.search);
+  const identity = `${subject.id}:${lesson.id}:${selection.identity}`;
+  return <WritingSession key={identity} lesson={lesson} selection={selection} subjectId={subject.id} />;
+}
+
+interface WritingSessionProps {
+  lesson: Lesson;
+  selection: EntrySelection;
+  subjectId: string;
+}
+
+function WritingSession({ lesson, selection, subjectId }: WritingSessionProps) {
+  const { progress, updateEntry, saveSession, clearSession } = useProgress();
+  const lessonIds = new Set(lesson.entries.map((entry) => entry.id));
   const [initial] = useState<InitialWritingState>(() => {
-    if (!belongsToSubject || !lesson) return { needsSave: false };
     const saved = progress.sessions[sessionKey(lesson.id, 'writing')];
     if (saved && isUsableSession(saved, lesson.id, lessonIds, selection.requiredIds)) {
       const answers = completeAnswers(saved);
@@ -118,12 +133,12 @@ export function WritingMode() {
   const [completion, setCompletion] = useState<{ correct: number; total: number }>();
 
   useEffect(() => {
-    if (belongsToSubject && initial.needsSave && initial.session) saveSession(initial.session);
-  }, [belongsToSubject, initial, saveSession]);
+    if (initial.needsSave && initial.session) saveSession(initial.session);
+  }, [initial, saveSession]);
 
-  if (!belongsToSubject || !subject || !lesson || !session) return <MissingContent />;
+  if (!session) return <MissingContent />;
 
-  const basePath = `/subjects/${subject.id}/lessons/${lesson.id}`;
+  const basePath = `/subjects/${subjectId}/lessons/${lesson.id}`;
   const currentId = session.entryIds[session.index];
   const currentEntry = lesson.entries.find((entry) => entry.id === currentId);
   const currentAnswer = session.answers.find((answer) => answer.entryId === currentId);
