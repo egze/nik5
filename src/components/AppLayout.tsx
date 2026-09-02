@@ -15,8 +15,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Link className="header-link" to="/">Fächer</Link>
         </div>
       </header>
+      <StorageNotice />
       <main className="content-container page-content">
-        <StorageNotice />
         {children}
       </main>
     </div>

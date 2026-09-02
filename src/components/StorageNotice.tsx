@@ -5,5 +5,5 @@ export function StorageNotice() {
 
   if (status.persistence !== 'memory') return null;
 
-  return <p role="status">Dein Fortschritt kann in diesem Browser nicht gespeichert werden.</p>;
+  return <p className="storage-notice content-container" role="status">Dein Fortschritt kann in diesem Browser nicht gespeichert werden.</p>;
 }
