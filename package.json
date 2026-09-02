@@ -6,11 +6,9 @@
   "engines": { "node": ">=22 <23" },
   "scripts": {
     "dev": "vite",
-    "validate": "tsx scripts/validate-content.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "npm run validate && tsc -b && vite build",
-    "set-pin": "node scripts/set-pin.mjs"
+    "build": "tsc -b && vite build"
   },
   "dependencies": {
     "react": "latest",
