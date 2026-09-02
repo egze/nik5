@@ -116,8 +116,9 @@ Progress is saved in `localStorage` under a namespaced key and contains a schema
 
 - per-entry attempts, correct answers, and `Kann ich` / `Noch üben` status;
 - completed and unfinished exercise sessions;
-- exam attempts and latest/best percentages;
-- the current authentication-unlock marker.
+- exam attempts and latest/best percentages.
+
+The authentication-unlock marker uses a separate namespaced local record so the PIN gate can run before the progress provider. It contains only the current credential version.
 
 The store validates loaded data and migrates known older versions. If stored data is corrupt, it preserves the bad payload under a diagnostic key, starts cleanly, and shows a German notice. If persistent browser storage is unavailable, the site remains usable with in-memory progress for the current tab and explains that results will not be saved.
 
