@@ -7,6 +7,8 @@ import { NotFoundPage } from './screens/NotFoundPage';
 import { SubjectPage } from './screens/SubjectPage';
 import { LearnMode } from './screens/exercises/LearnMode';
 import { MultipleChoiceMode } from './screens/exercises/MultipleChoiceMode';
+import { WritingMode } from './screens/exercises/WritingMode';
+import { ExamMode } from './screens/exercises/ExamMode';
 import { ProgressProvider } from './progress/ProgressProvider';
 
 export function AppRoutes() {
@@ -17,6 +19,8 @@ export function AppRoutes() {
       <Route path="/subjects/:subjectId/lessons/:lessonId" element={<LessonPage />} />
       <Route path="/subjects/:subjectId/lessons/:lessonId/lernen" element={<LearnMode />} />
       <Route path="/subjects/:subjectId/lessons/:lessonId/auswahl" element={<MultipleChoiceMode />} />
+      <Route path="/subjects/:subjectId/lessons/:lessonId/schreiben" element={<WritingMode />} />
+      <Route path="/subjects/:subjectId/lessons/:lessonId/pruefung" element={<ExamMode />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
