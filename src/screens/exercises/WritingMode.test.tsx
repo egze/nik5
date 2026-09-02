@@ -52,6 +52,20 @@ afterEach(() => {
 });
 
 describe('WritingMode', () => {
+  it('does not change progress for a mismatched subject and valid lesson route', () => {
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession(savedWritingSession());
+    const before = store.snapshot();
+
+    renderWritingMode(
+      store,
+      '/subjects/not-spanish/lessons/spanish-01/schreiben?entries=el-dia',
+    );
+
+    expect(screen.getByRole('heading', { name: 'Diesen Lerninhalt gibt es nicht.' })).toBeInTheDocument();
+    expect(store.snapshot()).toEqual(before);
+  });
+
   it('creates and persists one mixed-direction prompt for every lesson entry', async () => {
     let randomCall = 0;
     vi.spyOn(Math, 'random').mockImplementation(() => (randomCall++ % 2 === 0 ? 0.1 : 0.9));

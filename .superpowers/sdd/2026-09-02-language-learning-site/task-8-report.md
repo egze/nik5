@@ -163,3 +163,74 @@ The first sandboxed build could not create the `tsx` IPC socket (`listen EPERM`)
 ## Concerns
 
 - The verification host reports Node.js 26.5.0 while `package.json` declares `>=22 <23`. All tests, validation, TypeScript compilation, and bundling pass, but CI should continue to verify under the declared Node 22 range.
+
+## Fix Round 1 — reject mismatched subject/lesson persistence
+
+### Finding and root cause
+
+A URL could name a valid lesson under a subject that did not own it. Both exercise components computed the invalid ownership state, but their state initializers still read or created lesson sessions and their effects persisted those sessions before the later `MissingContent` render guard. Writing could overwrite a saved queue with query-selected IDs, while Exam could normalize and overwrite an existing saved answer order.
+
+### RED
+
+The regression tests seed valid sessions, capture the complete progress snapshot, render a mismatched subject with the valid `spanish-01` lesson, assert the German missing-content heading, and require the full snapshot to remain unchanged.
+
+```text
+npm test -- src/screens/exercises/WritingMode.test.tsx src/screens/exercises/ExamMode.test.tsx
+Test Files  2 failed (2)
+Tests       2 failed | 16 passed (18)
+
+WritingMode changed spanish-01:writing from the saved hola queue to the
+query-selected el-dia queue.
+
+ExamMode reordered the saved spanish-01:exam answer descriptors to match
+entryIds.
+```
+
+### GREEN implementation
+
+- Converted each ownership expression to an explicit boolean.
+- Each lazy initializer now returns an inert `{ needsSave: false }` state before reading or creating a session unless the lesson belongs to the route subject.
+- Each initial persistence effect repeats the ownership check defensively before calling `saveSession`.
+- Hook declaration order remains unchanged and every hook still runs before the missing-content return.
+
+```text
+npm test -- src/screens/exercises/WritingMode.test.tsx src/screens/exercises/ExamMode.test.tsx
+Test Files  2 passed (2)
+Tests       18 passed (18)
+```
+
+### Fix Round 1 verification
+
+```text
+npm test -- src/App.test.tsx
+Test Files  1 passed (1)
+Tests       3 passed (3)
+
+npm test
+Test Files  15 passed (15)
+Tests       86 passed (86)
+
+npm run build
+Inhalte geprüft: 1 Fach, 1 Lektion, 38 Einträge.
+TypeScript project build passed.
+vite: 47 modules transformed; production bundle built successfully.
+```
+
+### Fix Round 1 files
+
+- `src/screens/exercises/WritingMode.tsx`
+- `src/screens/exercises/WritingMode.test.tsx`
+- `src/screens/exercises/ExamMode.tsx`
+- `src/screens/exercises/ExamMode.test.tsx`
+- `.superpowers/sdd/2026-09-02-language-learning-site/task-8-report.md`
+
+### Fix Round 1 review
+
+- Mismatched subject/lesson routes still render `Diesen Lerninhalt gibt es nicht.` through the existing accessible `MissingContent` region.
+- Such routes no longer read, generate, hydrate, save, clear, or otherwise mutate an exercise session.
+- Existing session data and the complete progress snapshot remain byte-for-byte equivalent at the value level after rendering either invalid route.
+- Valid owned routes retain their existing queue creation, resume, scoring, retry, feedback, and accessibility behavior, as shown by the complete focused and full-suite runs.
+
+### Fix Round 1 concerns
+
+No new concerns. The original Node version caveat above remains applicable.

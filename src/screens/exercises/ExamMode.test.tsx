@@ -33,12 +33,15 @@ function fullExamSession(overrides: Partial<SavedSession> = {}): SavedSession {
   };
 }
 
-function renderExamMode(store = createProgressStore(new MemoryStorage())) {
+function renderExamMode(
+  store = createProgressStore(new MemoryStorage()),
+  path = '/subjects/spanish/lessons/spanish-01/pruefung',
+) {
   return {
     store,
     ...render(
       <ProgressProvider store={store}>
-        <MemoryRouter initialEntries={['/subjects/spanish/lessons/spanish-01/pruefung']}>
+        <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route path="/subjects/:subjectId/lessons/:lessonId/pruefung" element={<ExamMode />} />
           </Routes>
@@ -53,6 +56,19 @@ afterEach(() => {
 });
 
 describe('ExamMode', () => {
+  it('does not change progress for a mismatched subject and valid lesson route', () => {
+    const store = createProgressStore(new MemoryStorage());
+    const saved = fullExamSession();
+    saved.answers = [...saved.answers].reverse();
+    store.saveSession(saved);
+    const before = store.snapshot();
+
+    renderExamMode(store, '/subjects/not-spanish/lessons/spanish-01/pruefung');
+
+    expect(screen.getByRole('heading', { name: 'Diesen Lerninhalt gibt es nicht.' })).toBeInTheDocument();
+    expect(store.snapshot()).toEqual(before);
+  });
+
   it('creates and persists every entry exactly once with its generated direction', async () => {
     let randomCall = 0;
     vi.spyOn(Math, 'random').mockImplementation(() => (randomCall++ % 2 === 0 ? 0.1 : 0.9));

@@ -84,11 +84,11 @@ export function ExamMode() {
   const { progress, updateEntry, saveSession, clearSession, recordExam } = useProgress();
   const subject = subjectId ? getSubject(subjectId) : undefined;
   const lesson = lessonId ? getLesson(lessonId) : undefined;
-  const belongsToSubject = subject && lesson
+  const belongsToSubject = Boolean(subject && lesson
     && lesson.subjectId === subject.id
-    && subject.lessonIds.includes(lesson.id);
+    && subject.lessonIds.includes(lesson.id));
   const [initial] = useState<InitialExamState>(() => {
-    if (!lesson) return { needsSave: false };
+    if (!belongsToSubject || !lesson) return { needsSave: false };
     const saved = progress.sessions[sessionKey(lesson.id, 'exam')];
     if (saved && isUsableSession(saved, lesson)) {
       const completed = completeAnswers(saved);
@@ -104,8 +104,8 @@ export function ExamMode() {
   const submitting = useRef(false);
 
   useEffect(() => {
-    if (initial.needsSave && initial.session) saveSession(initial.session);
-  }, [initial, saveSession]);
+    if (belongsToSubject && initial.needsSave && initial.session) saveSession(initial.session);
+  }, [belongsToSubject, initial, saveSession]);
 
   if (!belongsToSubject || !subject || !lesson || !session) return <MissingContent />;
 

@@ -99,13 +99,13 @@ export function WritingMode() {
   const { progress, updateEntry, saveSession, clearSession } = useProgress();
   const subject = subjectId ? getSubject(subjectId) : undefined;
   const lesson = lessonId ? getLesson(lessonId) : undefined;
-  const belongsToSubject = subject && lesson
+  const belongsToSubject = Boolean(subject && lesson
     && lesson.subjectId === subject.id
-    && subject.lessonIds.includes(lesson.id);
+    && subject.lessonIds.includes(lesson.id));
   const selection = lesson ? requestedEntries(lesson, location.search) : { entries: [] };
   const lessonIds = new Set(lesson?.entries.map((entry) => entry.id) ?? []);
   const [initial] = useState<InitialWritingState>(() => {
-    if (!lesson) return { needsSave: false };
+    if (!belongsToSubject || !lesson) return { needsSave: false };
     const saved = progress.sessions[sessionKey(lesson.id, 'writing')];
     if (saved && isUsableSession(saved, lesson.id, lessonIds, selection.requiredIds)) {
       const answers = completeAnswers(saved);
@@ -118,8 +118,8 @@ export function WritingMode() {
   const [completion, setCompletion] = useState<{ correct: number; total: number }>();
 
   useEffect(() => {
-    if (initial.needsSave && initial.session) saveSession(initial.session);
-  }, [initial, saveSession]);
+    if (belongsToSubject && initial.needsSave && initial.session) saveSession(initial.session);
+  }, [belongsToSubject, initial, saveSession]);
 
   if (!belongsToSubject || !subject || !lesson || !session) return <MissingContent />;
 
