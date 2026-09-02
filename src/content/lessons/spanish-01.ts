@@ -1,0 +1,76 @@
+import type { Lesson, VocabularyEntry } from '../types';
+
+const entry = (id: string, groupId: string, spanish: string, german: string[], kind: VocabularyEntry['kind']): VocabularyEntry => ({
+  id, groupId, spanish, german, kind,
+});
+
+export const spanish01: Lesson = {
+  id: 'spanish-01',
+  subjectId: 'spanish',
+  title: 'Begrüßen und vorstellen',
+  subtitle: 'Erste Wörter aus Unidad 1',
+  sourceDate: '2026-09-02',
+  groups: [
+    { id: 'begrüßung', title: 'Begrüßung und Vorstellung' },
+    { id: 'befinden', title: 'Befinden' },
+    { id: 'nomen', title: 'Nomen' },
+  ],
+  entries: [
+    entry('el-dia', 'begrüßung', 'el día', ['der Tag'], 'phrase'),
+    entry('buenos-dias', 'begrüßung', '¡Buenos días!', ['Guten Morgen!', 'Guten Tag!'], 'phrase'),
+    entry('buenas-tardes', 'begrüßung', '¡Buenas tardes!', ['Guten Tag!', 'Guten Abend!'], 'phrase'),
+    entry('buenas-noches', 'begrüßung', '¡Buenas noches!', ['Guten Abend!', 'Gute Nacht!'], 'phrase'),
+    entry('en-aleman', 'begrüßung', 'en alemán', ['auf Deutsch'], 'phrase'),
+    {
+      ...entry('se-dice', 'begrüßung', 'se dice...', ['man sagt ...', '(es) heißt ...'], 'phrase'),
+      acceptedGerman: ['heißt ...'],
+      example: { spanish: 'En alemán “buenos días” se dice “Guten Tag”.', german: '„Buenos días“ heißt „Guten Tag“ auf Deutsch.' },
+    },
+    entry('hola', 'begrüßung', '¡Hola!', ['Hallo!'], 'phrase'),
+    entry('que-tal', 'begrüßung', '¿Qué tal?', ['Wie geht’s?'], 'phrase'),
+    { ...entry('bien', 'begrüßung', 'bien', ['gut'], 'word'), note: 'Adverb' },
+    entry('gracias', 'begrüßung', 'Gracias.', ['Danke.'], 'phrase'),
+    entry('y', 'begrüßung', 'y', ['und'], 'word'),
+    entry('tu', 'begrüßung', 'tú', ['du'], 'word'),
+    entry('tambien', 'begrüßung', 'también', ['auch'], 'word'),
+    entry('yo', 'begrüßung', 'yo', ['ich'], 'word'),
+    {
+      ...entry('soy', 'begrüßung', '(Yo) soy...', ['Ich bin ...'], 'phrase'),
+      acceptedSpanish: ['soy...'],
+      example: { spanish: '—Soy Ali.\n—Yo soy Natalia.', german: '— Ich bin Ali.\n— Ich bin Natalia.' },
+    },
+    entry('como-te-llamas', 'begrüßung', '¿Cómo te llamas?', ['Wie heißt du?'], 'phrase'),
+    entry('como', 'begrüßung', '¿Cómo...?', ['Wie ...?'], 'phrase'),
+    {
+      ...entry('me-llamo', 'begrüßung', 'Me llamo...', ['Ich heiße ...'], 'phrase'),
+      example: { spanish: 'Me llamo Thomas.', german: 'Ich heiße Thomas.' },
+    },
+    entry('perdon', 'begrüßung', 'Perdón.', ['Entschuldigung.'], 'phrase'),
+    entry('de-donde-eres', 'begrüßung', '¿De dónde eres?', ['Woher kommst du?'], 'phrase'),
+    entry('de-donde', 'begrüßung', '¿De dónde...?', ['Woher ...?'], 'phrase'),
+    {
+      ...entry('soy-de', 'begrüßung', 'Soy de...', ['Ich komme aus ...'], 'phrase'),
+      example: { spanish: 'Soy de Alemania.', german: 'Ich komme aus Deutschland.' },
+    },
+    entry('de', 'begrüßung', 'de', ['von', 'aus'], 'word'),
+    entry('alemania', 'begrüßung', 'Alemania', ['Deutschland'], 'word'),
+    entry('adios', 'begrüßung', '¡Adiós!', ['Auf Wiedersehen!', 'Tschüs!'], 'phrase'),
+    entry('hasta-luego', 'begrüßung', '¡Hasta luego!', ['Bis später!'], 'phrase'),
+    entry('muy', 'befinden', 'muy', ['sehr'], 'word'),
+    entry('asi-asi', 'befinden', 'así, así', ['so einigermaßen', 'Es geht so.'], 'phrase'),
+    { ...entry('mal', 'befinden', 'mal', ['schlecht'], 'word'), note: 'Adverb' },
+    {
+      ...entry('fatal', 'befinden', 'fatal', ['(sehr) schlecht'], 'word'),
+      acceptedGerman: ['schlecht'],
+      example: { spanish: '—¿Qué tal?\n—Fatal.', german: '– Wie geht’s?\n– Gar nicht gut.' },
+    },
+    entry('el-barco', 'nomen', 'el barco', ['das Schiff'], 'phrase'),
+    entry('el-caballo', 'nomen', 'el caballo', ['das Pferd'], 'phrase'),
+    entry('el-dado', 'nomen', 'el dado', ['der Würfel'], 'phrase'),
+    entry('el-elefante', 'nomen', 'el elefante', ['der Elefant'], 'phrase'),
+    entry('la-foca', 'nomen', 'la foca', ['die Robbe'], 'phrase'),
+    entry('el-gato', 'nomen', 'el gato', ['die Katze'], 'phrase'),
+    entry('el-hueso', 'nomen', 'el hueso', ['der Knochen'], 'phrase'),
+    entry('la-isla', 'nomen', 'la isla', ['die Insel'], 'phrase'),
+  ],
+};
