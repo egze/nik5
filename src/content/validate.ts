@@ -2,6 +2,15 @@ import type { Lesson, Subject, VocabularyEntry } from './types';
 
 const hasDisplayValue = (value: string) => value.trim().length > 0;
 
+const labelForCount = (count: number, singular: string, plural: string) => (
+  `${count} ${count === 1 ? singular : plural}`
+);
+
+export const catalogSummary = (subjects: Subject[], lessons: Lesson[]) => {
+  const entryCount = lessons.reduce((total, lesson) => total + lesson.entries.length, 0);
+  return `Inhalte geprüft: ${labelForCount(subjects.length, 'Fach', 'Fächer')}, ${labelForCount(lessons.length, 'Lektion', 'Lektionen')}, ${labelForCount(entryCount, 'Eintrag', 'Einträge')}.`;
+};
+
 const collectDuplicateIds = (ids: string[], label: string, errors: string[]) => {
   const seen = new Set<string>();
   for (const id of ids) {
@@ -30,6 +39,7 @@ export const validateCatalog = (subjects: Subject[], lessons: Lesson[]): string[
 
   const subjectIds = new Set(subjects.map((subject) => subject.id));
   const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+  const lessonByEntryId = new Map<string, string>();
 
   for (const subject of subjects) {
     if (!hasDisplayValue(subject.id)) errors.push('Fach-ID fehlt');
@@ -56,17 +66,30 @@ export const validateCatalog = (subjects: Subject[], lessons: Lesson[]): string[
       errors.push(`Lektion ${lesson.id}: fehlt in Fach ${lesson.subjectId}`);
     }
 
+    if (lesson.groups.length === 0) errors.push(`Lektion ${lesson.id}: Gruppen fehlen`);
+    if (lesson.entries.length === 0) errors.push(`Lektion ${lesson.id}: Einträge fehlen`);
+
     collectDuplicateIds(lesson.groups.map((group) => group.id), `Gruppe in Lektion ${lesson.id}`, errors);
     const groupIds = new Set(lesson.groups.map((group) => group.id));
+    const usedGroupIds = new Set(lesson.entries.map((entry) => entry.groupId));
     for (const group of lesson.groups) {
       if (!hasDisplayValue(group.id)) errors.push(`Lektion ${lesson.id}: Gruppen-ID fehlt`);
       if (!hasDisplayValue(group.title)) errors.push(`Lektion ${lesson.id}, Gruppe ${group.id}: Titel fehlt`);
+      if (!usedGroupIds.has(group.id)) errors.push(`Lektion ${lesson.id}, Gruppe ${group.id}: enthält keine Einträge`);
     }
 
     const entryIds = new Set<string>();
     for (const entry of lesson.entries) {
       if (entryIds.has(entry.id)) errors.push(`Lektion ${lesson.id}: doppelter Eintrag ${entry.id}`);
       entryIds.add(entry.id);
+      if (hasDisplayValue(entry.id)) {
+        const firstLessonId = lessonByEntryId.get(entry.id);
+        if (firstLessonId && firstLessonId !== lesson.id) {
+          errors.push(`Lektion ${lesson.id}: Eintrag-ID ${entry.id} ist bereits in Lektion ${firstLessonId} vergeben`);
+        } else {
+          lessonByEntryId.set(entry.id, lesson.id);
+        }
+      }
       validateEntry(lesson, entry, groupIds, errors);
     }
   }

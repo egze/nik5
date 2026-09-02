@@ -44,6 +44,20 @@ const savedSession: SavedSession = {
   updatedAt: '2026-09-02T08:00:00.000Z',
 };
 
+const validPersistedProgress = {
+  version: 1,
+  entries: { hola: { attempts: 1, correct: 1, status: 'known' } },
+  sessions: { 'spanish-01:writing': savedSession },
+  exams: {
+    'spanish-01': [{
+      lessonId: 'spanish-01',
+      completedAt: '2026-09-02T09:00:00.000Z',
+      percentage: 100,
+      missedEntryIds: [],
+    }],
+  },
+};
+
 const expectMalformedDocumentReset = (document: unknown) => {
   const storage = new MemoryStorage();
   const persisted = JSON.stringify(document);
@@ -128,7 +142,14 @@ describe('progress store', () => {
     });
   });
 
-  it('backs up malformed persisted JSON and starts a fresh document', () => {
+  it('keeps a semantically valid persisted version-one document', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(PROGRESS_KEY, JSON.stringify(validPersistedProgress));
+
+    expect(createProgressStore(storage).snapshot()).toEqual(validPersistedProgress);
+  });
+
+  it('backs up malformed persisted JSON, starts a fresh document, and reports recovery', () => {
     const storage = new MemoryStorage();
     storage.setItem(PROGRESS_KEY, '{not valid json');
 
@@ -139,6 +160,10 @@ describe('progress store', () => {
     expect(backupKey).toMatch(/^lernraum\.progress\.corrupt\.\d+$/);
     expect(storage.getItem(backupKey!)).toBe('{not valid json');
     expect(storage.getItem(PROGRESS_KEY)).toBe(JSON.stringify(store.snapshot()));
+    expect(store.status()).toEqual({
+      persistence: 'persistent',
+      warning: 'Dein gespeicherter Fortschritt war beschädigt und wurde zurückgesetzt.',
+    });
   });
 
   it('backs up and resets a version-one document with malformed entry progress', () => {
@@ -176,6 +201,98 @@ describe('progress store', () => {
       sessions: {},
       exams: { 'spanish-01': {} },
     });
+  });
+
+  it.each([
+    ['negative entry attempts', {
+      ...validPersistedProgress,
+      entries: { hola: { attempts: -1, correct: 0, status: 'new' } },
+    }],
+    ['negative correct answers', {
+      ...validPersistedProgress,
+      entries: { hola: { attempts: 1, correct: -1, status: 'new' } },
+    }],
+    ['fractional entry attempts', {
+      ...validPersistedProgress,
+      entries: { hola: { attempts: 1.5, correct: 1, status: 'new' } },
+    }],
+    ['fractional correct answers', {
+      ...validPersistedProgress,
+      entries: { hola: { attempts: 1, correct: 0.5, status: 'new' } },
+    }],
+    ['correct answers greater than attempts', {
+      ...validPersistedProgress,
+      entries: { hola: { attempts: 1, correct: 2, status: 'new' } },
+    }],
+    ['fractional session indexes', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, index: 0.5 } },
+    }],
+    ['negative session indexes', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, index: -1 } },
+    }],
+    ['out-of-bounds session indexes', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, index: 2 } },
+    }],
+    ['empty session entry lists', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, entryIds: [], index: 0, answers: [] } },
+    }],
+    ['empty session entry ids', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, entryIds: [''], index: 0, answers: [] } },
+    }],
+    ['duplicate session entry ids', {
+      ...validPersistedProgress,
+      sessions: { 'spanish-01:writing': { ...savedSession, entryIds: ['hola', 'hola'] } },
+    }],
+    ['answer ids outside the session', {
+      ...validPersistedProgress,
+      sessions: {
+        'spanish-01:writing': {
+          ...savedSession,
+          answers: [{ entryId: 'missing', value: 'Tschüs', direction: 'es-de', correct: true }],
+        },
+      },
+    }],
+    ['duplicate answer ids', {
+      ...validPersistedProgress,
+      sessions: {
+        'spanish-01:writing': {
+          ...savedSession,
+          answers: [
+            { entryId: 'hola', value: 'Hallo', direction: 'es-de', correct: true },
+            { entryId: 'hola', value: 'Hallo', direction: 'es-de', correct: true },
+          ],
+        },
+      },
+    }],
+    ['out-of-range exam percentages', {
+      ...validPersistedProgress,
+      exams: {
+        'spanish-01': [{
+          lessonId: 'spanish-01',
+          completedAt: '2026-09-02T09:00:00.000Z',
+          percentage: 101,
+          missedEntryIds: [],
+        }],
+      },
+    }],
+    ['negative exam percentages', {
+      ...validPersistedProgress,
+      exams: {
+        'spanish-01': [{
+          lessonId: 'spanish-01',
+          completedAt: '2026-09-02T09:00:00.000Z',
+          percentage: -1,
+          missedEntryIds: [],
+        }],
+      },
+    }],
+  ])('backs up and resets a version-one document with %s', (_description, document) => {
+    expectMalformedDocumentReset(document);
   });
 
   it('notifies a subscriber once for each mutation and stops after unsubscribe', () => {

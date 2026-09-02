@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { VocabularyEntry } from '../content/types';
+import { normalizeAnswer } from './answers';
 import { createExam, createMultipleChoice, scoreExam } from './engine';
 
 const entries: VocabularyEntry[] = [
@@ -18,7 +19,7 @@ describe('exercise engine', () => {
   it('creates four normalized-distinct multiple-choice options', () => {
     const question = createMultipleChoice(entries, 'one', 'es-de', () => 0);
     expect(question.options).toHaveLength(4);
-    expect(new Set(question.options.map((option) => option.toLocaleLowerCase())).size).toBe(4);
+    expect(new Set(question.options.map(normalizeAnswer)).size).toBe(4);
     expect(question.options).toContain('Eins');
     expect(question.prompt).toBe('Uno');
   });
@@ -37,6 +38,21 @@ describe('exercise engine', () => {
     expect(question.options).toContain('Eins');
     expect(question.options).not.toContain('Ein');
     expect(question.options).not.toContain('Eine');
+  });
+
+  it('excludes punctuation-equivalent distractors after answer normalization', () => {
+    const punctuationEntries: VocabularyEntry[] = [
+      { id: 'hello', groupId: 'g', spanish: 'Hola', german: ['Hallo!'], kind: 'word' },
+      { id: 'lookalike', groupId: 'g', spanish: 'Saludo', german: ['Hallo?'], kind: 'word' },
+      { id: 'morning', groupId: 'g', spanish: 'Mañana', german: ['Guten Morgen'], kind: 'word' },
+      { id: 'thanks', groupId: 'g', spanish: 'Gracias', german: ['Danke'], kind: 'word' },
+      { id: 'bye', groupId: 'g', spanish: 'Adiós', german: ['Tschüs'], kind: 'word' },
+    ];
+
+    const question = createMultipleChoice(punctuationEntries, 'hello', 'es-de', () => 0);
+
+    expect(question.options).not.toContain('Hallo?');
+    expect(new Set(question.options.map(normalizeAnswer)).size).toBe(question.options.length);
   });
 
   it('caps multiple-choice options at four when enough distractors exist', () => {

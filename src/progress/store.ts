@@ -29,12 +29,24 @@ const hasOnlyKeys = (value: Record<string, unknown>, keys: string[]) => (
   Object.keys(value).every((key) => keys.includes(key))
 );
 
-const isFiniteNumber = (value: unknown): value is number => (
-  typeof value === 'number' && Number.isFinite(value)
+const isNonNegativeInteger = (value: unknown): value is number => (
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 );
 
 const isStringArray = (value: unknown): value is string[] => (
   Array.isArray(value) && value.every((item) => typeof item === 'string')
+);
+
+const hasText = (value: unknown): value is string => (
+  typeof value === 'string' && value.trim().length > 0
+);
+
+const hasUniqueText = (values: string[]) => (
+  values.every(hasText) && new Set(values).size === values.length
+);
+
+const isTimestamp = (value: unknown): value is string => (
+  hasText(value) && Number.isFinite(Date.parse(value))
 );
 
 const isStudyStatus = (value: unknown): value is StudyStatus => (
@@ -56,39 +68,51 @@ const isAnswerDirection = (value: unknown): value is NonNullable<SavedSession['a
 const isEntryProgress = (value: unknown): value is EntryProgress => (
   isRecord(value)
   && hasOnlyKeys(value, ['attempts', 'correct', 'status'])
-  && isFiniteNumber(value.attempts)
-  && isFiniteNumber(value.correct)
+  && isNonNegativeInteger(value.attempts)
+  && isNonNegativeInteger(value.correct)
+  && value.correct <= value.attempts
   && isStudyStatus(value.status)
 );
 
 const isSessionAnswer = (value: unknown): value is SavedSession['answers'][number] => (
   isRecord(value)
   && hasOnlyKeys(value, ['entryId', 'value', 'direction', 'correct'])
-  && typeof value.entryId === 'string'
+  && hasText(value.entryId)
   && typeof value.value === 'string'
   && (value.direction === undefined || isAnswerDirection(value.direction))
   && (value.correct === undefined || typeof value.correct === 'boolean')
 );
 
-const isSavedSession = (value: unknown): value is SavedSession => (
-  isRecord(value)
-  && hasOnlyKeys(value, ['lessonId', 'mode', 'entryIds', 'index', 'direction', 'answers', 'updatedAt'])
-  && typeof value.lessonId === 'string'
-  && isExerciseMode(value.mode)
-  && isStringArray(value.entryIds)
-  && isFiniteNumber(value.index)
-  && isDirection(value.direction)
-  && Array.isArray(value.answers) && value.answers.every(isSessionAnswer)
-  && typeof value.updatedAt === 'string'
-);
+const isSavedSession = (value: unknown): value is SavedSession => {
+  if (!isRecord(value)
+    || !hasOnlyKeys(value, ['lessonId', 'mode', 'entryIds', 'index', 'direction', 'answers', 'updatedAt'])
+    || !isStringArray(value.entryIds)
+    || !Array.isArray(value.answers)
+    || !value.answers.every(isSessionAnswer)) return false;
+
+  const entryIds = value.entryIds;
+  const answers = value.answers;
+  return hasText(value.lessonId)
+    && isExerciseMode(value.mode)
+    && entryIds.length > 0
+    && hasUniqueText(entryIds)
+    && isNonNegativeInteger(value.index)
+    && value.index < entryIds.length
+    && isDirection(value.direction)
+    && answers.every((answer) => entryIds.includes(answer.entryId))
+    && new Set(answers.map((answer) => answer.entryId)).size === answers.length
+    && isTimestamp(value.updatedAt);
+};
 
 const isExamAttempt = (value: unknown): value is ExamAttempt => (
   isRecord(value)
   && hasOnlyKeys(value, ['lessonId', 'completedAt', 'percentage', 'missedEntryIds'])
-  && typeof value.lessonId === 'string'
-  && typeof value.completedAt === 'string'
-  && isFiniteNumber(value.percentage)
+  && hasText(value.lessonId)
+  && isTimestamp(value.completedAt)
+  && isNonNegativeInteger(value.percentage)
+  && value.percentage <= 100
   && isStringArray(value.missedEntryIds)
+  && hasUniqueText(value.missedEntryIds)
 );
 
 const isProgress = (value: unknown): value is AppProgress => (
@@ -98,10 +122,14 @@ const isProgress = (value: unknown): value is AppProgress => (
   && isRecord(value.entries)
   && isRecord(value.sessions)
   && isRecord(value.exams)
-  && Object.values(value.entries).every(isEntryProgress)
-  && Object.values(value.sessions).every(isSavedSession)
-  && Object.values(value.exams).every((attempts) => (
-    Array.isArray(attempts) && attempts.every(isExamAttempt)
+  && Object.entries(value.entries).every(([entryId, progress]) => hasText(entryId) && isEntryProgress(progress))
+  && Object.entries(value.sessions).every(([key, session]) => (
+    isSavedSession(session) && key === sessionKey(session.lessonId, session.mode)
+  ))
+  && Object.entries(value.exams).every(([lessonId, attempts]) => (
+    hasText(lessonId)
+    && Array.isArray(attempts)
+    && attempts.every((attempt) => isExamAttempt(attempt) && attempt.lessonId === lessonId)
   ))
 );
 
@@ -127,7 +155,7 @@ const migrate = (value: unknown): AppProgress | undefined => {
 
 export interface ProgressStore {
   snapshot(): AppProgress;
-  status(): { persistence: 'persistent' | 'memory'; warning?: string };
+  status(): ProgressStoreStatus;
   subscribe(listener: () => void): () => void;
   updateEntry(entryId: string, correct: boolean): void;
   setStudyStatus(entryId: string, status: StudyStatus): void;
@@ -136,11 +164,17 @@ export interface ProgressStore {
   recordExam(attempt: ExamAttempt): void;
 }
 
+export interface ProgressStoreStatus {
+  persistence: 'persistent' | 'memory';
+  warning?: string;
+}
+
 export function sessionKey(lessonId: string, mode: ExerciseMode) {
   return `${lessonId}:${mode}`;
 }
 
 const memoryWarning = 'Dein Fortschritt kann in diesem Browser nicht gespeichert werden.';
+const recoveryWarning = 'Dein gespeicherter Fortschritt war beschädigt und wurde zurückgesetzt.';
 
 const defaultStorage = (): Storage | undefined => {
   try {
@@ -154,6 +188,7 @@ export function createProgressStore(storage: Storage | undefined = defaultStorag
   let state = emptyProgress();
   let snapshot: AppProgress;
   let persistence: 'persistent' | 'memory' = storage ? 'persistent' : 'memory';
+  let warning: string | undefined;
   const listeners = new Set<() => void>();
 
   const markMemoryOnly = () => {
@@ -180,6 +215,13 @@ export function createProgressStore(storage: Storage | undefined = defaultStorag
     }
   };
 
+  const recoverMalformed = (text: string) => {
+    warning = recoveryWarning;
+    replaceMalformed(text);
+    state = emptyProgress();
+    persist();
+  };
+
   if (storage) {
     try {
       const persisted = storage.getItem(PROGRESS_KEY);
@@ -190,14 +232,10 @@ export function createProgressStore(storage: Storage | undefined = defaultStorag
             state = migrated;
             persist();
           } else {
-            replaceMalformed(persisted);
-            state = emptyProgress();
-            persist();
+            recoverMalformed(persisted);
           }
         } catch {
-          replaceMalformed(persisted);
-          state = emptyProgress();
-          persist();
+          recoverMalformed(persisted);
         }
       }
     } catch {
@@ -222,9 +260,9 @@ export function createProgressStore(storage: Storage | undefined = defaultStorag
 
   return {
     snapshot: () => snapshot,
-    status: () => persistence === 'persistent'
-      ? { persistence }
-      : { persistence, warning: memoryWarning },
+    status: () => persistence === 'memory'
+      ? { persistence, warning: memoryWarning }
+      : warning ? { persistence, warning } : { persistence },
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
