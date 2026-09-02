@@ -61,6 +61,26 @@ a { color: inherit; }
 .mode-grid { margin-top: 2.25rem; }
 .mode-card { min-height: 12rem; flex-direction: column; justify-content: space-between; padding: 1.35rem; }
 .mode-card__cta { color: var(--teal-dark) !important; font-weight: 800; }
+.direction-picker, .exercise, .exercise-summary { max-width: 42rem; }
+.direction-picker__choices, .rating-actions, .exercise-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+.direction-picker__choices button, .rating-actions button, .choice-options button, .choice-feedback button, .exercise-actions button { min-height: 48px; border: 1px solid var(--teal); border-radius: 0.7rem; padding: 0.75rem 1rem; background: var(--teal); color: white; font-weight: 800; cursor: pointer; }
+.direction-picker__choices button:last-child, .rating-actions button:first-child, .button-link--secondary { border-color: var(--line); background: var(--paper); color: var(--teal-dark); }
+.exercise-progress { color: var(--teal-dark); font-weight: 800; }
+.flashcard { display: grid; width: 100%; min-height: 16rem; gap: 1rem; margin-top: 1.25rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: var(--shadow); color: var(--ink); text-align: left; cursor: pointer; }
+.flashcard__prompt { font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 800; }
+.flashcard__answer { display: grid; gap: 0.8rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--teal-dark); font-size: clamp(1.25rem, 4vw, 1.8rem); font-weight: 800; }
+.flashcard__answer small { color: var(--muted); font-size: 0.95rem; font-weight: 500; line-height: 1.5; white-space: pre-line; }
+.flashcard__hint { color: var(--muted); font-size: 0.95rem; }
+.choice-prompt { margin: 1.25rem 0; font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 800; }
+.choice-options { display: grid; gap: 0.75rem; }
+.choice-options button { width: 100%; background: var(--paper); color: var(--ink); text-align: left; }
+.choice-options button:disabled { cursor: default; opacity: 0.72; }
+.choice-feedback { margin-top: 1.25rem; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--paper); }
+.choice-feedback p { margin: 0 0 0.75rem; line-height: 1.5; }
+.choice-feedback--correct { border-color: #b1dacd; }
+.choice-feedback--wrong { border-color: #e5b6ad; }
+.exercise-summary p { color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.button-link--secondary { margin-top: 0; }
 .feedback-card { display: flex; max-width: 42rem; gap: 1rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: var(--shadow); }
 .feedback-card > span { display: grid; flex: 0 0 2rem; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; font-weight: 900; }
 .feedback-card h1 { margin-top: 0; font-size: clamp(1.5rem, 4vw, 2.25rem); }

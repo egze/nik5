@@ -63,6 +63,21 @@ describe('catalog browsing flow', () => {
     expect(screen.getByText('0 von 38 gelernt')).toBeInTheDocument();
   });
 
+  it('registers the flashcard and multiple-choice lesson routes', () => {
+    const flashcards = renderCatalogAt('/subjects/spanish/lessons/spanish-01/lernen');
+    expect(screen.getByRole('button', { name: 'Spanisch → Deutsch' })).toBeInTheDocument();
+    flashcards.unmount();
+
+    renderCatalogAt('/subjects/spanish/lessons/spanish-01/auswahl');
+    expect(screen.getByRole('button', { name: 'Deutsch → Spanisch' })).toBeInTheDocument();
+  });
+
+  it('rejects a mismatched lesson route for an exercise mode', () => {
+    renderCatalogAt('/subjects/unbekannt/lessons/spanish-01/lernen');
+
+    expect(screen.getByText('Diesen Lerninhalt gibt es nicht.')).toBeInTheDocument();
+  });
+
   it('removes the auth marker when signing out', async () => {
     const user = userEvent.setup();
     localStorage.setItem(AUTH_KEY, pinConfig.credentialVersion);
