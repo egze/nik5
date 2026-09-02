@@ -31,7 +31,7 @@ describe('exercise engine', () => {
 
   it('excludes all equivalent answers for the current entry from distractors', () => {
     const current: VocabularyEntry = {
-      ...entries[0], german: ['Eins', 'Ein'], acceptedGerman: ['Eine'],
+      ...entries[0]!, german: ['Eins', 'Ein'], acceptedGerman: ['Eine'],
     };
     const question = createMultipleChoice([current, ...entries.slice(1)], 'one', 'es-de', () => 0);
     expect(question.options).toContain('Eins');
