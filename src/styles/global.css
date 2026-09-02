@@ -11,11 +11,14 @@
   --coral: #ed785f;
   --line: #d9ded8;
   --shadow: 0 18px 50px rgb(40 58 53 / 10%);
+  --success: #177c73;
+  --error: #9a3021;
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
+a { color: inherit; }
 :focus-visible { outline: 3px solid #ef9f32; outline-offset: 3px; }
 .pin-gate, .app-shell { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }
 .pin-card { width: min(100%, 28rem); padding: 2.5rem; border: 1px solid var(--line); border-radius: 1.25rem; background: var(--paper); box-shadow: var(--shadow); }
@@ -24,10 +27,56 @@ button, input { font: inherit; }
 .pin-copy { color: var(--muted); line-height: 1.5; }
 .pin-card form { display: grid; gap: 0.65rem; margin-top: 1.75rem; }
 .pin-card input { width: 100%; padding: 0.8rem 0.9rem; border: 1px solid var(--line); border-radius: 0.65rem; letter-spacing: 0.2em; }
-.pin-card button, .logout-button { border: 0; border-radius: 0.65rem; padding: 0.8rem 1rem; color: white; background: var(--teal); font-weight: 700; cursor: pointer; }
+.pin-card button, .logout-button { min-height: 48px; border: 0; border-radius: 0.65rem; padding: 0.8rem 1rem; color: white; background: var(--teal); font-weight: 700; cursor: pointer; }
 .pin-card button:disabled { cursor: wait; opacity: 0.65; }
 .pin-card [role="status"] { min-height: 1.5rem; color: #9a3021; }
 .auth-actions { display: flex; justify-content: flex-end; padding: 1rem; background: var(--paper); }
+.content-container { width: min(1120px, calc(100% - 32px)); margin-inline: auto; }
+.app-layout { min-height: 100vh; padding-bottom: 3rem; }
+.site-header { border-bottom: 1px solid var(--line); background: rgb(255 253 247 / 88%); }
+.site-header__content { min-height: 4.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { display: inline-flex; min-height: 48px; align-items: center; color: var(--ink); font-size: 1.2rem; font-weight: 800; text-decoration: none; }
+.header-link, .back-link { color: var(--teal-dark); font-weight: 700; text-underline-offset: 0.2em; }
+.header-link { display: inline-flex; align-items: center; min-height: 48px; }
+.page-content { padding-top: clamp(2rem, 6vw, 4.5rem); }
+.page-content h1 { max-width: 20ch; margin: 0.25rem 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; }
+.page-intro { max-width: 52ch; margin: 0; color: var(--muted); font-size: 1.1rem; line-height: 1.55; }
+.back-link { display: inline-flex; align-items: center; min-height: 48px; margin: -0.5rem 0 1.5rem; }
+.subject-grid, .lesson-grid, .mode-grid { display: grid; gap: 1rem; margin-top: 2rem; }
+.subject-card, .lesson-card, .mode-card { position: relative; display: flex; min-height: 48px; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: 0 8px 24px rgb(40 58 53 / 7%); color: var(--ink); text-decoration: none; transition: transform 160ms ease, box-shadow 160ms ease; }
+.subject-card:hover, .lesson-card:hover, .mode-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.subject-card { overflow: hidden; padding: 1.25rem; gap: 1rem; }
+.subject-card::before { position: absolute; inset: 0 auto 0 0; width: 0.45rem; background: var(--subject-accent); content: ''; }
+.subject-card__icon { display: grid; flex: 0 0 4rem; height: 4rem; place-items: center; border-radius: 0.8rem; background: color-mix(in srgb, var(--subject-accent) 18%, white); color: var(--ink); font-weight: 800; }
+.subject-card__content, .lesson-card__content { display: grid; flex: 1; gap: 0.35rem; }
+.subject-card strong, .lesson-card strong, .mode-card strong { font-size: 1.15rem; }
+.subject-card__content > span, .lesson-card__content > span, .mode-card > span { color: var(--muted); line-height: 1.45; }
+.progress-bar { display: grid; gap: 0.35rem; margin-top: 0.7rem; }
+.progress-bar p { margin: 0; color: var(--teal-dark); font-size: 0.9rem; font-weight: 700; }
+.progress-track { height: 0.65rem; overflow: hidden; border-radius: 999px; background: #dfe9e5; }
+.progress-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #177c73, #4cae8d); }
+.lesson-card { align-items: flex-start; padding: 1.25rem; gap: 1rem; }
+.lesson-card__number { display: grid; flex: 0 0 2.25rem; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 50%; background: #e3f0ec; color: var(--teal-dark); font-weight: 800; }
+.exam-result { font-size: 0.9rem; font-weight: 700; }
+.mode-grid { margin-top: 2.25rem; }
+.mode-card { min-height: 12rem; flex-direction: column; justify-content: space-between; padding: 1.35rem; }
+.mode-card__cta { color: var(--teal-dark) !important; font-weight: 800; }
+.feedback-card { display: flex; max-width: 42rem; gap: 1rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: var(--shadow); }
+.feedback-card > span { display: grid; flex: 0 0 2rem; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; font-weight: 900; }
+.feedback-card h1 { margin-top: 0; font-size: clamp(1.5rem, 4vw, 2.25rem); }
+.feedback-card p { color: var(--muted); line-height: 1.5; }
+.feedback-card--error { border-color: #e5b6ad; }
+.feedback-card--error > span { background: #f8ddd8; color: var(--error); }
+.feedback-card--success { border-color: #b1dacd; }
+.feedback-card--success > span { background: #dff1e9; color: var(--success); }
+.button-link { display: inline-flex; align-items: center; min-height: 48px; margin-top: 0.5rem; padding: 0.7rem 1rem; border-radius: 0.65rem; background: var(--teal); color: white; font-weight: 800; text-decoration: none; }
+.error-page { min-height: 100vh; display: grid; place-items: center; }
+@media (min-width: 720px) {
+  .subject-grid, .lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 920px) {
+  .mode-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
