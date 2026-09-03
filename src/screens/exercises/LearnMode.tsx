@@ -114,6 +114,16 @@ export function LearnMode() {
   }
 
   const direction = session.direction as Direction;
+  const canSpeak = typeof globalThis.SpeechSynthesisUtterance === 'function'
+    && typeof window.speechSynthesis?.speak === 'function';
+  const speakSpanish = (rate: number) => {
+    const utterance = new SpeechSynthesisUtterance(currentEntry.spanish);
+    utterance.lang = 'es-ES';
+    utterance.rate = rate;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <AppLayout>
       <Link className="back-link" to={basePath}>← Zurück zur Lektion</Link>
@@ -135,6 +145,16 @@ export function LearnMode() {
           ) : null}
           <span className="flashcard__hint">{revealed ? 'Antwort verbergen' : 'Antwort zeigen'}</span>
         </button>
+        {canSpeak && (
+          <div className="speech-actions" aria-label="Aussprache">
+            <button type="button" onClick={() => speakSpanish(1)}>
+              <span aria-hidden="true">🔊</span> Anhören
+            </button>
+            <button type="button" onClick={() => speakSpanish(0.65)}>
+              <span aria-hidden="true">🐢</span> Langsam
+            </button>
+          </div>
+        )}
         {revealed && (
           <div className="rating-actions" aria-label="Karte bewerten">
             <button type="button" onClick={() => rate('practice')}>Noch üben</button>

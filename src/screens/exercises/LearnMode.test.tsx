@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { LearnMode } from './LearnMode';
 import { spanish01 } from '../../content/lessons/spanish-01';
 import { ProgressProvider } from '../../progress/ProgressProvider';
@@ -16,6 +16,43 @@ class MemoryStorage implements Storage {
   removeItem(key: string) { this.values.delete(key); }
   setItem(key: string, value: string) { this.values.set(key, value); }
 }
+
+const originalSpeechSynthesis = Object.getOwnPropertyDescriptor(globalThis, 'speechSynthesis');
+const originalSpeechSynthesisUtterance = Object.getOwnPropertyDescriptor(globalThis, 'SpeechSynthesisUtterance');
+
+function installSpeechSynthesis() {
+  class TestUtterance {
+    lang = '';
+    rate = 1;
+
+    constructor(readonly text: string) {}
+  }
+
+  const spoken: TestUtterance[] = [];
+  Object.defineProperty(globalThis, 'SpeechSynthesisUtterance', {
+    configurable: true,
+    value: TestUtterance,
+  });
+  Object.defineProperty(globalThis, 'speechSynthesis', {
+    configurable: true,
+    value: {
+      cancel() {},
+      speak(utterance: TestUtterance) { spoken.push(utterance); },
+    },
+  });
+  return spoken;
+}
+
+afterEach(() => {
+  if (originalSpeechSynthesis) Object.defineProperty(globalThis, 'speechSynthesis', originalSpeechSynthesis);
+  else Reflect.deleteProperty(globalThis, 'speechSynthesis');
+
+  if (originalSpeechSynthesisUtterance) {
+    Object.defineProperty(globalThis, 'SpeechSynthesisUtterance', originalSpeechSynthesisUtterance);
+  } else {
+    Reflect.deleteProperty(globalThis, 'SpeechSynthesisUtterance');
+  }
+});
 
 function renderLearnMode(store = createProgressStore(new MemoryStorage())) {
   return {
@@ -74,6 +111,38 @@ describe('LearnMode', () => {
 
     expect(screen.getByText('Danke.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Noch üben' })).toBeInTheDocument();
+  });
+
+  it('speaks the current Spanish expression at normal and slow rates', async () => {
+    const user = userEvent.setup();
+    const spoken = installSpeechSynthesis();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['hola'], index: 0,
+      direction: 'de-es', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderLearnMode(store);
+
+    await user.click(screen.getByRole('button', { name: 'Anhören' }));
+    await user.click(screen.getByRole('button', { name: 'Langsam' }));
+
+    expect(spoken.map(({ text, lang, rate }) => ({ text, lang, rate }))).toEqual([
+      { text: '¡Hola!', lang: 'es-ES', rate: 1 },
+      { text: '¡Hola!', lang: 'es-ES', rate: 0.65 },
+    ]);
+    expect(screen.queryByText('¡Hola!')).not.toBeInTheDocument();
+  });
+
+  it('hides pronunciation actions when browser speech is unavailable', () => {
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['hola'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    renderLearnMode(store);
+
+    expect(screen.queryByRole('button', { name: 'Anhören' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Langsam' })).not.toBeInTheDocument();
   });
 
   it('keeps the prompt, revealed answer, example, and action in the flashcard name', async () => {
