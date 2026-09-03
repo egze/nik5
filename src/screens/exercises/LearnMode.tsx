@@ -130,7 +130,7 @@ export function LearnMode() {
           {revealed ? (
             <span className="flashcard__answer">
               {answerFor(currentEntry, direction)}
-              {currentEntry.example && <small>{currentEntry.example.spanish}\n{currentEntry.example.german}</small>}
+              {currentEntry.example && <small>{currentEntry.example.spanish}{'\n'}{currentEntry.example.german}</small>}
             </span>
           ) : null}
           <span className="flashcard__hint">{revealed ? 'Antwort verbergen' : 'Antwort zeigen'}</span>

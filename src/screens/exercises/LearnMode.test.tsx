@@ -94,6 +94,22 @@ describe('LearnMode', () => {
     expect(screen.getByText(/„Buenos días“ heißt „Guten Tag“ auf Deutsch\./)).toBeInTheDocument();
   });
 
+  it('renders the Spanish and German example on separate lines without visible escape text', async () => {
+    const user = userEvent.setup();
+    const store = createProgressStore(new MemoryStorage());
+    store.saveSession({
+      lessonId: 'spanish-01', mode: 'learn', entryIds: ['se-dice'], index: 0,
+      direction: 'es-de', answers: [], updatedAt: new Date().toISOString(),
+    });
+    const { container } = renderLearnMode(store);
+
+    await user.click(screen.getByRole('button', { name: /Antwort zeigen/ }));
+
+    expect(container.querySelector('.flashcard__answer small')?.textContent).toBe(
+      'En alemán “buenos días” se dice “Guten Tag”.\n„Buenos días“ heißt „Guten Tag“ auf Deutsch.',
+    );
+  });
+
   it('rates cards for practice, clears a completed session, and reports both totals', async () => {
     const user = userEvent.setup();
     const store = createProgressStore(new MemoryStorage());
