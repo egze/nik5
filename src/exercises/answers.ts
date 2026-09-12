@@ -4,10 +4,10 @@ export type Direction = 'es-de' | 'de-es';
 
 export function normalizeAnswer(value: string): string {
   return value
-    .normalize('NFC')
+    .normalize('NFD')
     .trim()
     .toLocaleLowerCase('de-DE')
-    .replace(/^[¿¡]+|[?!¡¿.…]+$/g, '')
+    .replace(/[\p{P}\p{M}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

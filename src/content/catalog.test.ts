@@ -4,7 +4,7 @@ import { spanish01 } from './lessons/spanish-01';
 
 describe('first Spanish lesson', () => {
   it('contains the 38 bold photographed entries', () => {
-    expect(getSubject('spanish')?.lessonIds).toEqual(['spanish-01']);
+    expect(getSubject('spanish')?.lessonIds).toEqual(['spanish-01', 'spanish-02']);
     expect(getLesson('spanish-01')?.entries).toHaveLength(38);
     expect(lessons[0]?.entries.at(-1)?.spanish).toBe('la isla');
   });

@@ -172,7 +172,7 @@ describe('WritingMode', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Richtig!');
   });
 
-  it('rejects a missing Spanish accent and shows the accepted answer until Weiter', async () => {
+  it('accepts a missing Spanish accent and keeps the feedback until Weiter', async () => {
     const user = userEvent.setup();
     const store = createProgressStore(new MemoryStorage());
     store.saveSession(savedWritingSession({
@@ -185,8 +185,8 @@ describe('WritingMode', () => {
     await user.type(input, 'Buenos dias');
     await user.click(screen.getByRole('button', { name: 'Prüfen' }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('Nicht ganz.');
-    expect(screen.getByText('Richtig wäre: ¡Buenos días!')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Richtig!');
+    expect(screen.queryByText('Richtig wäre: ¡Buenos días!')).not.toBeInTheDocument();
     expect(input).toHaveValue('Buenos dias');
     expect(input).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Weiter' })).toBeInTheDocument();
